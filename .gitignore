@@ -1,0 +1,28 @@
+# Private recovery material — never commit
+vault.key
+*.key
+*.passphrase
+*.secrets
+.env
+.env.*
+credentials.json
+backup-repository/
+recovery-output/
+restore-output/
+vault-recover-report-*.json
+
+# Local builds and generated archives
+*.exe
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.test
+*.log
+*.tmp
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
