@@ -1,0 +1,4 @@
+*.png binary
+*.syso binary
+*.go text eol=lf
+*.md text eol=lf
