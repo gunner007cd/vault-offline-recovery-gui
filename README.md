@@ -1,82 +1,74 @@
-# Vault Offline Recovery GUI — v1.0
+# Vault Offline Recovery GUI
 
-A native 64-bit Windows graphical interface for Tinkerologie's **official** standalone `vault recover` command. It works offline and is independent of Docker, Unraid, Python, and a running Vault server. It does **not** implement decryption, backup reading, or extraction, and does not modify the official Vault executable.
+A standalone, 64-bit Windows GUI for [Tinkerologie Vault](https://github.com/tinkerologie/vault)'s original `vault recover` command. It lets you inspect backup points, browse files, and perform selective restores without a running Vault server, Docker, or Unraid.
 
-## Quick start
+The GUI does **not** implement decryption or extraction. It starts the unmodified, official Vault recovery executable and reports its results. This is an independent companion utility, not a replacement for Vault.
 
-1. Put `Vault-Offline-Recovery-GUI-v1.0-Cancel-Label-Fix.exe` and the trusted official `vault-windows-amd64.exe` in the same folder. The GUI also supports browsing to an executable stored elsewhere.
-2. Start the GUI; choose your backup folder and, when required, the original `vault.key` or an encrypted backup passphrase file. Never type a passphrase into a file/path label.
-3. Choose **Scan backups** (read-only), then a restore point and item, then **Inspect item files** (read-only).
-4. In the separate browser, tick the files or folders to restore. You can instead explicitly tick the item root. No checked paths means **no restore**.
-5. Select an independent, preferably empty recovery destination, type `RESTORE`, and review the final confirmation carefully. The GUI checks destination free space and warns of known conflicts **before** starting Vault. The confirmation defaults to **No**.
-6. The original executable performs recovery. A green/success mascot and recovery confirmation only appear after a successful process exit and validation of that run's original Vault recovery report. The new report-summary window offers **Open recovered folder** and **View Vault JSON report**.
-7. To restore more files from the same inspected item, reopen the browser, check a fresh selection, and authorize another restore. File browsing remains instant; the original Vault executable may still rebuild its deduplication index for every new restore.
+## Download
 
-## v1.0 additions
+For a ready-to-run Windows build, check [GitHub Releases](https://github.com/gunner007cd/vault-offline-recovery-gui/releases) for:
 
-- **3 minutes 30 seconds** before the impatient mascot expression appears. This is elapsed time, never an invented percent complete. The extraction expression is based on the original executable's stderr `extracting ...` milestone.
-- **Pre-restore free-space comparison** based on indexed file sizes from the official `recover contents --json` output and Windows' actual available volume space. Sizes are **estimates** of file contents, not exact disk allocations. Compression, sparse files, metadata, temporary staging and filesystem overhead can change actual storage requirements. If a folder does not exist, the free-space query uses its nearest existing parent.
-- **Explicit pre-restore review** of the selected restore point, backup timestamp, item, exact include paths, estimated size, destination, free space, and detected existing item folders. No overwrite option is ever passed to Vault. A conflict warning is an extra preflight check; the original Vault recovery engine remains authoritative.
-- **Detailed confirmed recovery summary** sourced from Vault's *verified* JSON report: written files/bytes, renamed paths, skipped paths and pruned entries. A separate button opens the actual original report, which remains on disk. No GUI-computed "success" is substituted.
-- **Optional path memory**: click `[ ] Remember paths on this PC` to opt in. Only the GUI executable path, local backup folder and last recovery destination are stored in `%APPDATA%\VaultOfflineRecovery\paths.json` (Windows user profile). Key paths, key data, passphrases, passphrase-file paths, remote settings/credentials and archive data are never stored. Toggle off to delete the settings file. Nothing is remembered unless you opt in.
-- All nine expressive mascot states and the original GUI controls remain.
+- `vault-offline-recovery-gui.exe` — the Windows application
+- `vault-offline-recovery-gui.exe.sha256` — its SHA-256 checksum
 
-## Disaster recovery kit layout
+The executable is unsigned, so Windows SmartScreen may display a reputation warning. Verify the download and only run software you trust.
 
-```text
-Vault-Disaster-Recovery/
-  README.txt                           # your kit instructions
-  Vault-Offline-Recovery-GUI-v1.0-Cancel-Label-Fix.exe  # this GUI
-  vault-windows-amd64.exe             # official, unmodified Vault CLI
-  vault.key                            # YOUR private original server key (if needed)
-  other recovery notes / credentials  # keep private
+**The original Vault recovery executable is a separate requirement.** Download `vault-windows-amd64.exe` from the [original Vault releases](https://github.com/tinkerologie/vault/releases), and compare its SHA-256 with the checksum published by that project. The GUI's **Check executable + SHA-256** button reports the *Vault CLI's* hash for that comparison; it does not check the GUI's own hash.
+
+## Use the GUI
+
+1. Put `vault-offline-recovery-gui.exe` and the verified `vault-windows-amd64.exe` together in a folder, or select the Vault executable manually in the first field.
+2. Choose a storage type and select a local backup folder (or supply a supported remote-storage settings JSON).
+3. If the backups are protected, supply the original server's `vault.key` and/or a **passphrase file**. The passphrase file must contain **only the passphrase itself** on one line. If you have a Vault Emergency Kit, copy its passphrase into a separate file; do not select the whole Emergency Kit text.
+4. Select **Scan backups (read only)**, choose a readable restore point and item, and select **Inspect item files (read only)**.
+5. Open the file browser and tick the file(s) or folder(s) to restore. An empty selection does not initiate recovery.
+6. Select an independent recovery destination, type `RESTORE`, and inspect the pre-restore review. The restore starts only after explicit confirmation.
+7. After a confirmed successful extraction, open the recovered folder or view the JSON recovery report written by the original Vault executable.
+
+Deduplicated repositories can be unlocked using the original `vault.key` or a configured backup passphrase recovery mechanism. A passphrase only works where it was configured for that repository. Encrypted classic backups use the backup passphrase. Recovery is not possible without the appropriate key material.
+
+### Safety behavior
+
+- Backup storage is opened read-only by the original Vault recovery command; the GUI does not alter the repository.
+- Restoring requires a checked selection, `RESTORE` text confirmation, and a separate review of selected data and available destination space.
+- The GUI does not request Vault's `--overwrite` option. Use a new, preferably empty destination.
+- A success message requires a successful Vault process exit **and** a matching, verified recovery report. Failures and cancellations are not reported as successful restores.
+- Stopping a restore may leave partially extracted files in the destination.
+- The optional **Remember paths on this PC** setting only saves nonsecret paths locally. It does not save the backup key, passphrase, key-file path, passphrase-file path, or remote credentials.
+
+Keep your original `vault.key`, Emergency Kit, and other recovery secrets securely **outside this repository**. They are not packaged with the GUI or with GitHub releases.
+
+## Build from source on Windows
+
+The Go source, tests, embedded image assets, and Windows icon resource are all in the **repository root**. No `source/` directory, Python environment, external GUI library, or custom asset-generation step is required.
+
+Requirements: Windows x64, [Go 1.23 or newer](https://go.dev/dl/), and Git.
+
+In **PowerShell**:
+
+```powershell
+git clone https://github.com/gunner007cd/vault-offline-recovery-gui.git
+cd vault-offline-recovery-gui
+go test ./...
+go build -trimpath -ldflags="-s -w -H windowsgui" -o vault-offline-recovery-gui.exe .
 ```
 
-**Security:** If your kit ZIP includes `vault.key`, anyone who obtains the ZIP and the backup repository may be able to recover protected backups. **Do not distribute or upload that ZIP.** Keep it securely offline and protect the kit with strong encryption (for example an encrypted archive or encrypted storage). Ordinary ZIP files are not inherently encrypted. Never use the recovery key in a publicly downloadable release.
+The output is `vault-offline-recovery-gui.exe` in the repository folder. The nine UI images and icon resource are embedded in the built executable. The original `vault-windows-amd64.exe` is **not** embedded and must be obtained separately.
 
-The GUI-only distribution ZIP here intentionally contains **no** `vault.key` and **no** official Vault executable. Download the verified CLI from the original project; verify its SHA-256 against a trusted published release checksum before relying on it.
+To compute a checksum for your own build:
 
-## Safety behavior
-
-- Read-only repository access is performed by the original Vault recovery executable. The GUI never writes to backup storage.
-- The original CLI remains usable independently: `vault-windows-amd64.exe recover --help`.
-- No shell interpolation, homemade encryption, internal restore implementation, or `--overwrite` option.
-- Nonzero CLI exit codes and stderr are reported as actual errors. A zero exit code without an appropriate, recent, on-destination, matching verified recovery report **does not count as success**.
-- Stop command cancels the subprocess; partially extracted files may remain. Cancellations do not count as success.
-- No guessed percent complete. The mascot does not indicate data integrity on its own.
-- This Windows GUI is not a replacement for keeping backup copies and practicing real recovery.
-
-## Verifying this release
-
-A Go 1.23+ toolchain can rebuild from `source` with:
-
-```sh
-GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -H windowsgui" -o Vault-Offline-Recovery-GUI-v1.0-Cancel-Label-Fix.exe .
+```powershell
+(Get-FileHash .\vault-offline-recovery-gui.exe -Algorithm SHA256).Hash
 ```
 
-Tests: `go test ./...` and `go test -race ./...`. Run `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go vet ./...` for Windows-specific static analysis. All tests run without the official recovery executable by using a local mock; a real Windows exercise with real backups should still be performed before treating this as a production release.
+A locally rebuilt executable may have a different hash if the Go toolchain or build environment differs from the published release.
 
-### v1.0 locked-backup warning update
+## Releases and source archive
 
-Adds a ninth mascot state (confused expression with amber/orange ring) when a successful read-only scan returns **only locked restore points**, or when a locked restore point is selected among readable backups. The user-facing status clarifies that the original key or backup passphrase may be missing or incorrect. A locked point cannot be inspected or restored. Genuine CLI failures continue to show the red-ring error state; explicit cancellation still shows the blue-ring cancellation state.
+This repository tracks the source code and build configuration. Compiled `.exe` files are intentionally excluded from Git commits by `.gitignore`; **GitHub Release assets are downloadable separately and are not affected by `.gitignore`**. Release builds include a standalone EXE and a companion checksum. GitHub also automatically offers source archives for each release tag.
 
-This is a presentation-only update; the standalone Vault executable and the recovery adapter are unchanged. No keys or credentials are packaged.
+The GitHub Actions workflow at `.github/workflows/windows-release.yml` builds and publishes releases. It can be run manually from the **Actions** tab with a new version tag. Release binaries are separate from the original Vault project and are not code-signed.
 
-### v1.0 scan-mascot regression fix
+## Limitations
 
-Restores the behavior verified in the original eight-state build: after a successful read-only scan finds readable restore points, the mascot **stays on the thinking expression** rather than returning to the opening salute. Selecting a readable point after viewing a locked one also returns to thinking. The amber locked expression still appears for an all-locked scan or a selected locked restore point; real failures, cancellation, and verified restore success retain their existing states. Changing the connection/key still resets the mascot to the opening salute and requires another scan.
-
-The official Vault recovery executable and the GUI's recovery adapter are unchanged.
-
-### v1.0 themed-dialog refinement
-
-- Replaced the Windows white Yes/No pre-restore message box with a native dark charcoal/amber review window. It presents the **same preflight data** and remains **fail closed**. The owner window is disabled while reviewing, **Cancel** has initial keyboard focus, Escape or closing means no restore, and only clicking **Start restore** (or explicitly activating that button with the keyboard) authorizes the original Vault executable to run.
-- The existing recovery-summary window now has a dedicated dialog background renderer. The old background renderer accidentally painted an additional mascot portrait in the summary window, causing the blue-ring photobomb at the edge. The corrected dialog renderer does not paint the mascot.
-- All recovery engine subprocess operations, report verification, path safety checks, file selection and disk-space calculations are unchanged. This is a Windows native UI update only.
-
-**Validation:** Automated Go tests, race detector, Windows vet and a Windows amd64 GUI cross-build passed. The new native dialog still requires a hands-on Windows visual/keyboard smoke test before replacing a proven production version.
-
-### v1.0 Cancel button label fix
-
-- Shortens the pre-restore review cancel button from `Cancel — no changes` to `Cancel` to prevent text truncation at Windows display scaling.
-- No change to button width, event handlers, default focus, Escape behavior, modal logic, Vault operations, or verified-report checks.
+This is a Windows GUI for the existing `vault recover` interface. It depends on the CLI version supporting the expected `list`, `contents`, and `extract` commands and JSON output. Test compatibility after updating the original Vault executable, and retain a known-good recovery kit.
