@@ -11,7 +11,7 @@ recovery-output/
 restore-output/
 vault-recover-report-*.json
 
-# Local builds and generated archives
+# Local builds and generated archives (release EXEs are uploaded as GitHub Release assets, not committed here)
 *.exe
 *.zip
 *.7z
