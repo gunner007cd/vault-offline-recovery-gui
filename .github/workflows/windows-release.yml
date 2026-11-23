@@ -1,0 +1,72 @@
+name: Windows release
+
+# The first commit of this workflow publishes v1.0.
+# For later versions, run it from Actions with a NEW version tag.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/windows-release.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'New release tag (for example v1.1)'
+        required: true
+        default: 'v1.0'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build, test and publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up pinned Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.2'
+          cache: false
+
+      - name: Run Go tests
+        run: go test ./...
+
+      - name: Check Windows build with go vet
+        run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go vet ./...
+
+      - name: Build standalone Windows GUI
+        run: |
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build \
+            -buildvcs=false -trimpath -ldflags="-s -w -H windowsgui" \
+            -o vault-offline-recovery-gui.exe .
+
+      - name: Generate SHA-256 checksum
+        run: |
+          test -s vault-offline-recovery-gui.exe
+          sha256sum vault-offline-recovery-gui.exe > vault-offline-recovery-gui.exe.sha256
+          sha256sum -c vault-offline-recovery-gui.exe.sha256
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.version || 'v1.0' }}
+        shell: bash
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "Version must look like v1.0 or v1.1.0" >&2
+            exit 1
+          fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; leaving it untouched."
+            exit 0
+          fi
+          gh release create "$RELEASE_TAG" \
+            vault-offline-recovery-gui.exe \
+            vault-offline-recovery-gui.exe.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "Vault Offline Recovery GUI $RELEASE_TAG" \
+            --notes "Standalone Windows x64 GUI for the unmodified Vault recovery CLI. Download the EXE and accompanying SHA-256 checksum. The original Vault executable and private recovery keys are not included; see README for setup and safety notes."
