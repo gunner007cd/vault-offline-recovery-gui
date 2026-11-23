@@ -50,7 +50,7 @@ In **PowerShell**:
 git clone https://github.com/gunner007cd/vault-offline-recovery-gui.git
 cd vault-offline-recovery-gui
 go test ./...
-go build -trimpath -ldflags="-s -w -H windowsgui" -o vault-offline-recovery-gui.exe .
+go build -buildvcs=false -trimpath -ldflags="-s -w -H windowsgui" -o vault-offline-recovery-gui.exe .
 ```
 
 The output is `vault-offline-recovery-gui.exe` in the repository folder. The nine UI images and icon resource are embedded in the built executable. The original `vault-windows-amd64.exe` is **not** embedded and must be obtained separately.
